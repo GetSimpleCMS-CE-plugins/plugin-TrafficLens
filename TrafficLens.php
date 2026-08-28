@@ -3,7 +3,7 @@
 /*
 Plugin Name: TrafficLens
 Description: Privacy-first visitor analytics with country, browser, and referrer breakdowns. (SQLite3 required)
-Version: 0.1.0 (foundation)
+Version: 0.2.0
 Author: risingisland
 Author URI: https://ko-fi.com/ericmontgomery
 */
@@ -17,13 +17,14 @@ define('TrafficLens_PLUGIN_URL', $SITEURL . 'plugins/' . TrafficLens_SLUG . '/')
 
 require_once TrafficLens_PLUGIN_DIR . 'inc/db.php';
 require_once TrafficLens_PLUGIN_DIR . 'inc/ua-parser.php';
+require_once TrafficLens_PLUGIN_DIR . 'inc/queries.php';
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 
 register_plugin(
 	TrafficLens_SLUG,
 	'TrafficLens',
-	'0.1.0',
+	'0.2.0',
 	'risingisland',
 	'https://ko-fi.com/ericmontgomery',
 	'Privacy-first visitor analytics with country, browser, and referrer breakdowns. (SQLite3 required)',
@@ -34,6 +35,20 @@ register_plugin(
 add_action('pages-sidebar', 'createSideMenu', array(TrafficLens_SLUG, 'TrafficLens'));
 
 TrafficLens_init_db();
+
+// ── Early AJAX intercept ──────────────────────────────────────────────────────
+// Must run before GS outputs any HTML. Only fires when:
+//   (a) we are on the TrafficLens admin page (?id=TrafficLens), AND
+//   (b) a tl_action param is present
+if (
+	!empty($_REQUEST['tl_action']) &&
+	isset($_GET['id']) && $_GET['id'] === TrafficLens_SLUG
+) {
+	require_once TrafficLens_PLUGIN_DIR . 'inc/ajax.php';
+	TrafficLens_handle_ajax($_REQUEST['tl_action']);
+	// TrafficLens_handle_ajax() always exit()s - this is a safety net:
+	exit;
+}
 
 // Record the hit after the page has rendered - same hook point as the plugin this replaces.
 add_action('theme-footer', 'TrafficLens_track_visit');
@@ -103,9 +118,9 @@ function TrafficLens_track_visit() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ADMIN PAGE  (placeholder for this phase - dashboard UI comes next)
+// ADMIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_admin_page() {
-	require TrafficLens_PLUGIN_DIR . 'admin/dashboard.php';
+	require TrafficLens_PLUGIN_DIR . 'dashboard.php';
 }
