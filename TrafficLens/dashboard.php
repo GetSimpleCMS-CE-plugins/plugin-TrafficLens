@@ -15,7 +15,7 @@ $tl_ajax_base = '?id=' . TrafficLens_SLUG . '&tl_action=';
 				<option value="90d">Last 90 days</option>
 				<option value="all">All time</option>
 			</select>
-			<button type="button" id="tl-refresh" class="tl-btn">Refresh</button>
+			<button type="button" id="tl-refresh" class="tl-btn tl-btn-orange">Refresh</button>
 			<button type="button" id="tl-export" class="tl-btn">Export CSV</button>
 			<button type="button" id="tl-settings-toggle" class="tl-btn tl-btn-ghost">Settings</button>
 		</div>
@@ -36,7 +36,7 @@ $tl_ajax_base = '?id=' . TrafficLens_SLUG . '&tl_action=';
 			<input type="number" id="tl-set-refresh" min="15" style="width:5rem;"> seconds
 		</label>
 		<div class="tl-field-row">
-			<button type="button" id="tl-settings-save" class="tl-btn">Save settings</button>
+			<button type="button" id="tl-settings-save" class="tl-btn tl-btn-green">Save settings</button>
 			<span id="tl-settings-status" class="tl-muted"></span>
 		</div>
 	</div>

@@ -34,8 +34,12 @@
 	transition: background .15s;
 }
 .tl-btn:hover { background: #0094f0; }
-.tl-btn-ghost { background: #f0f2f5; color: #1a1a2e; }
+.tl-btn-ghost { background: #f0f2f5; color: #1a1a2e; border: 1px solid #1a1a2e; }
 .tl-btn-ghost:hover { background: #e2e6ed; }
+.tl-btn-orange { background: #e67e22; }
+.tl-btn-orange:hover { background: #cf6c1a; }
+.tl-btn-green { background: #16a34a; }
+.tl-btn-green:hover { background: #15803d; }
 
 #tl-range {
 	padding: .5rem .75rem;
