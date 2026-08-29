@@ -265,6 +265,53 @@ function TrafficLens_dashboard_payload($range) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// DASHBOARD MODULE SUMMARY  (lean - just what the "Daily Visitors" module needs)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TrafficLens_daily_summary() {
+	$db    = TrafficLens_db();
+	$start = TrafficLens_range_start('30d');
+	$now   = time();
+
+	$stmt = $db->prepare('SELECT ip_hash, timestamp FROM visits WHERE timestamp >= :start ORDER BY timestamp');
+	$stmt->bindValue(':start', $start, SQLITE3_INTEGER);
+	$res = $stmt->execute();
+
+	$daily = []; // 'Y-m-d' => ['uniques' => [ip=>true,...], 'views' => int]
+	while ($r = $res->fetchArray(SQLITE3_ASSOC)) {
+		$ts  = (int)$r['timestamp'];
+		$day = date('Y-m-d', $ts);
+		if (!isset($daily[$day])) $daily[$day] = ['uniques' => [], 'views' => 0];
+		$daily[$day]['uniques'][$r['ip_hash']] = true;
+		$daily[$day]['views']++;
+	}
+
+	$labels = $uniques = $views = [];
+	$cursor = strtotime(date('Y-m-d', $start));
+	$end    = strtotime(date('Y-m-d', $now));
+	$guard  = 0;
+	while ($cursor <= $end && $guard < 40) {
+		$d = date('Y-m-d', $cursor);
+		$labels[]  = $d;
+		$uniques[] = isset($daily[$d]) ? count($daily[$d]['uniques']) : 0;
+		$views[]   = isset($daily[$d]) ? $daily[$d]['views']          : 0;
+		$cursor = strtotime('+1 day', $cursor);
+		$guard++;
+	}
+
+	$live_now    = (int)$db->querySingle('SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE timestamp >= ' . ($now - 300));
+	$week_views  = array_sum(array_slice($views, -7));
+
+	return [
+		'labels'     => $labels,
+		'uniques'    => $uniques,
+		'views'      => $views,
+		'live_now'   => $live_now,
+		'week_views' => $week_views,
+	];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TOP PAGES  (real SQL pagination/sort/search - independent of the range payload above)
 // ─────────────────────────────────────────────────────────────────────────────
 
