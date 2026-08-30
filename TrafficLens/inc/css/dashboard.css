@@ -23,7 +23,7 @@
 .tl-controls { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
 
 .tl-btn {
-	background: #2764e7;
+	background: #5585EC;
 	color: #fff;
 	border: none;
 	padding: .5rem 1rem;
@@ -34,10 +34,12 @@
 	transition: background .15s;
 }
 .tl-btn:hover { background: #0094f0; }
-.tl-btn-ghost { background: #f0f2f5; color: #1a1a2e; border: 1px solid #1a1a2e; }
+.tl-btn-ghost { background: #f0f2f5; color: #1a1a2e; border: 1px solid #8A8AA2; }
 .tl-btn-ghost:hover { background: #e2e6ed; }
 .tl-btn-orange { background: #e67e22; }
 .tl-btn-orange:hover { background: #cf6c1a; }
+.tl-btn-red { background: #FF695E; border: 1px solid #FF3A2B;}
+.tl-btn-red:hover { background: #FF9991; }
 .tl-btn-green { background: #16a34a; }
 .tl-btn-green:hover { background: #15803d; }
 

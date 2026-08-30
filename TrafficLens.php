@@ -10,7 +10,7 @@ Author URI: https://ko-fi.com/ericmontgomery
 
 i18n_merge('TrafficLens') || i18n_merge('TrafficLens', 'en_US');
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants
 define('TrafficLens_SLUG',       basename(__FILE__, '.php'));
 define('TrafficLens_PLUGIN_DIR', GSPLUGINPATH . TrafficLens_SLUG . '/');
 define('TrafficLens_PLUGIN_URL', $SITEURL . 'plugins/' . TrafficLens_SLUG . '/');
@@ -19,12 +19,12 @@ require_once TrafficLens_PLUGIN_DIR . 'inc/db.php';
 require_once TrafficLens_PLUGIN_DIR . 'inc/ua-parser.php';
 require_once TrafficLens_PLUGIN_DIR . 'inc/queries.php';
 
-// ─── Bootstrap ───────────────────────────────────────────────────────────────
+// ─── Bootstrap
 
 register_plugin(
 	TrafficLens_SLUG,
 	'TrafficLens',
-	'0.2.0',
+	'1.2',
 	'risingisland',
 	'https://ko-fi.com/ericmontgomery',
 	'Privacy-first visitor analytics with country, browser, and referrer breakdowns. (SQLite3 required)',
@@ -32,14 +32,11 @@ register_plugin(
 	'TrafficLens_admin_page'
 );
 
-add_action('pages-sidebar', 'createSideMenu', array(TrafficLens_SLUG, 'TrafficLens'));
+add_action('pages-sidebar', 'createSideMenu', array(TrafficLens_SLUG, i18n_r('TrafficLens/lang_Menu_Title') . ' <svg xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;" width="18px" height="18px" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none"/><g fill="none"><path stroke="#4147d5" stroke-linecap="round" stroke-linejoin="round" d="M.75.75v10.5a2 2 0 0 0 2 2h10.5"/><path fill="#d7e0ff" d="M4.5 7.25c1.12 0 1.75-.63 1.75-1.75S5.62 3.75 4.5 3.75s-1.75.63-1.75 1.75s.63 1.75 1.75 1.75"/><path stroke="#4147d5" stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.25c1.12 0 1.75-.63 1.75-1.75S5.62 3.75 4.5 3.75s-1.75.63-1.75 1.75s.63 1.75 1.75 1.75"/><path fill="#d7e0ff" d="M11.5 4.25c1.12 0 1.75-.63 1.75-1.75S12.62.75 11.5.75s-1.75.63-1.75 1.75s.63 1.75 1.75 1.75"/><path stroke="#4147d5" stroke-linecap="round" stroke-linejoin="round" d="M11.5 4.25c1.12 0 1.75-.63 1.75-1.75S12.62.75 11.5.75s-1.75.63-1.75 1.75s.63 1.75 1.75 1.75"/><path fill="#d7e0ff" d="M9 10.75c1.12 0 1.75-.63 1.75-1.75S10.12 7.25 9 7.25S7.25 7.88 7.25 9s.63 1.75 1.75 1.75"/><path stroke="#4147d5" stroke-linecap="round" stroke-linejoin="round" d="M9 10.75c1.12 0 1.75-.63 1.75-1.75S10.12 7.25 9 7.25S7.25 7.88 7.25 9s.63 1.75 1.75 1.75M3.313 6.906L.75 9.766m10.437-5.538l-1 3.366M6.113 6.292L7.56 7.883"/></g></svg>'));
 
 TrafficLens_init_db();
 
-// ── Early AJAX intercept ──────────────────────────────────────────────────────
-// Must run before GS outputs any HTML. Only fires when:
-//   (a) we are on the TrafficLens admin page (?id=TrafficLens), AND
-//   (b) a tl_action param is present
+// ── Early AJAX intercept
 if (
 	!empty($_REQUEST['tl_action']) &&
 	isset($_GET['id']) && $_GET['id'] === TrafficLens_SLUG
@@ -53,9 +50,7 @@ if (
 // Record the hit after the page has rendered - same hook point as the plugin this replaces.
 add_action('theme-footer', 'TrafficLens_track_visit');
 
-// ─────────────────────────────────────────────────────────────────────────────
 // CORE TRACKING HOOK  (runs on every front-end page view)
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_track_visit() {
 	// Skip 404s - not a real page view
@@ -117,9 +112,7 @@ function TrafficLens_track_visit() {
 	}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN PAGE
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_admin_page() {
 	require TrafficLens_PLUGIN_DIR . 'dashboard.php';

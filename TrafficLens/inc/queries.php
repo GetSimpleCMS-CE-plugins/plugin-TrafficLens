@@ -19,29 +19,26 @@
  * since it needs independent sorting, search and paging from the UI.
  */
 
-// ─────────────────────────────────────────────────────────────────────────────
 // RANGE HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_allowed_ranges() {
-	return ['today', '7d', '30d', '90d', 'all'];
+	return ['today', '7d', '30d', '90d', '365d', 'all'];
 }
 
 function TrafficLens_range_start($range) {
 	$now = time();
 	switch ($range) {
 		case 'today': return strtotime('today');
-		case '7d':    return $now - 7  * 86400;
-		case '90d':   return $now - 90 * 86400;
+		case '7d':    return $now - 7   * 86400;
+		case '90d':   return $now - 90  * 86400;
+		case '365d':  return $now - 365 * 86400;
 		case 'all':   return 0;
 		case '30d':
 		default:      return $now - 30 * 86400;
 	}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // FLAG EMOJI  (no image assets or country-name table needed)
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_flag_emoji($iso) {
 	$iso = strtoupper((string)$iso);
@@ -53,9 +50,7 @@ function TrafficLens_flag_emoji($iso) {
 	return $flag;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // MAIN DASHBOARD PAYLOAD
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_get_range_rows($db, $start) {
 	$stmt = $db->prepare('
@@ -80,9 +75,7 @@ function TrafficLens_top_n_assoc($assoc, $n) {
 	return $out;
 }
 
-// Groups consecutive same-ip_hash rows into sessions (30-min gap = new session),
-// approximating entry/exit pages and bounce rate without cookies or a sessions table.
-// Requires $rows ordered by ip_hash, timestamp (as returned by TrafficLens_get_range_rows).
+// Groups consecutive same-ip_hash rows into sessions (30-min gap = new session).
 function TrafficLens_session_stats($rows, $gap_seconds = 1800) {
 	$entry = []; $exit = []; $sessions = 0; $bounces = 0;
 	$prev_ip = null; $prev_ts = null;
@@ -133,6 +126,7 @@ function TrafficLens_dashboard_payload($range) {
 	$live_set    = [];
 	$daily       = []; // 'Y-m-d' => ['uniques' => [ip=>true,...], 'views' => int]
 	$hourly      = array_fill(0, 24, 0);
+	$hourly_uniques = array_fill(0, 24, []); // hour => [ip=>true,...] - only needed for the "Today" chart
 	$dow         = array_fill(0, 7, 0); // 0 = Sunday
 	$device      = [];
 	$browser     = [];
@@ -154,6 +148,7 @@ function TrafficLens_dashboard_payload($range) {
 		$daily[$day]['views']++;
 
 		$hourly[(int)date('G', $ts)]++;
+		$hourly_uniques[(int)date('G', $ts)][$ip] = true;
 		$dow[(int)date('w', $ts)]++;
 
 		$d = $r['device_type'] ?: 'unknown';
@@ -173,9 +168,19 @@ function TrafficLens_dashboard_payload($range) {
 		}
 	}
 
-	// ── Daily trend, with zero-filled gaps ──────────────────────────────────
+	// Trend chart 
+
 	$labels = $uniques_series = $views_series = [];
-	if (!empty($daily)) {
+	$trend_granularity = 'daily';
+
+	if ($range === 'today') {
+		$trend_granularity = 'hourly';
+		for ($h = 0; $h < 24; $h++) {
+			$labels[]         = date('g A', mktime($h, 0, 0));
+			$uniques_series[] = count($hourly_uniques[$h]);
+			$views_series[]   = $hourly[$h];
+		}
+	} elseif (!empty($daily)) {
 		$first_day = $start > 0 ? date('Y-m-d', $start) : min(array_keys($daily));
 		$cursor = strtotime($first_day);
 		$end    = strtotime(date('Y-m-d', $now));
@@ -190,7 +195,7 @@ function TrafficLens_dashboard_payload($range) {
 		}
 	}
 
-	// ── Top countries by unique visitor count ───────────────────────────────
+	// Top countries by unique visitor count
 	$country_counts = [];
 	foreach ($country_sets as $code => $set) { $country_counts[$code] = count($set); }
 	arsort($country_counts);
@@ -201,7 +206,7 @@ function TrafficLens_dashboard_payload($range) {
 		$top_countries[] = ['code' => $code, 'flag' => TrafficLens_flag_emoji($code), 'count' => $cnt];
 	}
 
-	// ── Top referrers ────────────────────────────────────────────────────────
+	// Top referrers
 	arsort($referrer);
 	$top_referrers = [];
 	$i = 0;
@@ -210,7 +215,7 @@ function TrafficLens_dashboard_payload($range) {
 		$top_referrers[] = ['domain' => $domain, 'count' => $cnt];
 	}
 
-	// ── New vs. returning ────────────────────────────────────────────────────
+	// New vs. returning
 	// Only meaningful for a bounded range - for "all time" everyone is by
 	// definition appearing for the first time within the window, so we
 	// flag it as unavailable rather than show a misleading 100/0 split.
@@ -233,7 +238,7 @@ function TrafficLens_dashboard_payload($range) {
 		$new_vs_returning = ['available' => true, 'new' => $new_count, 'returning' => $returning_count];
 	}
 
-	// ── Session-based entry/exit/bounce ─────────────────────────────────────
+	// Session-based entry/exit/bounce
 	$session_stats = TrafficLens_session_stats($rows);
 
 	return [
@@ -248,6 +253,7 @@ function TrafficLens_dashboard_payload($range) {
 			'labels'  => $labels,
 			'uniques' => $uniques_series,
 			'views'   => $views_series,
+			'granularity' => $trend_granularity,
 		],
 		'hourly'            => $hourly,
 		'day_of_week'       => $dow,
@@ -264,9 +270,7 @@ function TrafficLens_dashboard_payload($range) {
 	];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // DASHBOARD MODULE SUMMARY  (lean - just what the "Daily Visitors" module needs)
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_daily_summary() {
 	$db    = TrafficLens_db();
@@ -311,9 +315,7 @@ function TrafficLens_daily_summary() {
 	];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // TOP PAGES  (real SQL pagination/sort/search - independent of the range payload above)
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_top_pages($range, $page, $per_page, $sort, $dir, $search) {
 	$db    = TrafficLens_db();
@@ -350,9 +352,7 @@ function TrafficLens_top_pages($range, $page, $per_page, $sort, $dir, $search) {
 	return ['rows' => $rows, 'total' => $total, 'page' => $page, 'per_page' => $per_page];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // LIVE ACTIVITY FEED
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_live_feed($limit = 20) {
 	$db = TrafficLens_db();
@@ -375,9 +375,7 @@ function TrafficLens_live_feed($limit = 20) {
 	return ['feed' => $feed, 'live_now' => $live_now];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // CSV EXPORT  (streams directly, does not return - caller should treat as terminal)
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_export_csv($range) {
 	$db    = TrafficLens_db();

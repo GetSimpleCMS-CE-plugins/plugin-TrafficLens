@@ -1,8 +1,6 @@
 <?php if (!defined('IN_GS')) { die('You cannot load this page directly.'); }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PATHS
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_data_dir() {
 	return GSDATAOTHERPATH . 'TrafficLens/';
@@ -20,9 +18,7 @@ function TrafficLens_mmdb_path() {
 	return TrafficLens_PLUGIN_DIR . 'vendor/dbip-country-lite.mmdb';
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // DATABASE
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_db() {
 	static $db = null;
@@ -64,9 +60,7 @@ function TrafficLens_init_db() {
 	");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // SETTINGS  (simple JSON store - swapped for a proper admin form in the dashboard phase)
-// ─────────────────────────────────────────────────────────────────────────────
 
 function TrafficLens_default_settings() {
 	return [
@@ -99,9 +93,7 @@ function TrafficLens_save_settings($new_settings) {
 	return $merged;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // GEO LOOKUP
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Returns a 2-letter ISO country code for a raw (unhashed) IP address,
