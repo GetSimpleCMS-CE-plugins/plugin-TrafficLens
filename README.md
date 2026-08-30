@@ -23,6 +23,8 @@ third-party trackers, and without ever storing a visitor's raw IP address.
 - **Optional Dashboard module** — a compact "Daily Visitors" widget for the Dashboard plugin (see below)
 - Ships in English and Spanish; every string in the admin UI (including the PDF report) is translatable
 
+<img width="950" alt="image" src="https://github.com/user-attachments/assets/a9a2d551-16fc-4204-8765-815454b4b540" />
+
 ## Privacy design
 
 This plugin is built around one rule: **the visitor's IP address is never stored.**
