@@ -112,6 +112,9 @@ plugins/
 
 TrafficLens ships with an optional module for the separate **Dashboard** plugin, showing a compact "Daily Visitors" widget (this week's views, live-now count, and a 30-day chart) on the GS admin home screen. It's distributed separately — see `README.md` inside the module's own folder for installation instructions.
 
+<img width="950"  alt="image" src="https://github.com/user-attachments/assets/d732f3f1-e0ca-4747-953b-1d4edc734e99" />
+
+
 ## Known limitations
 
 - **Flag emoji don't render in the PDF export.** jsPDF's built-in fonts have no emoji glyphs; the PDF's Top Countries table shows plain country codes instead (the on-screen dashboard still shows flags fine, since that's rendered by the browser).
