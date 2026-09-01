@@ -23,6 +23,8 @@ third-party trackers, and without ever storing a visitor's raw IP address.
 - **Optional Dashboard module** — a compact "Daily Visitors" widget for the Dashboard plugin (see below)
 - Ships in English and Spanish; every string in the admin UI (including the PDF report) is translatable
 
+<img width="950" alt="image" src="https://github.com/user-attachments/assets/a9a2d551-16fc-4204-8765-815454b4b540" />
+
 ## Privacy design
 
 This plugin is built around one rule: **the visitor's IP address is never stored.**
@@ -111,6 +113,9 @@ plugins/
 ## Dashboard module
 
 TrafficLens ships with an optional module for the separate **Dashboard** plugin, showing a compact "Daily Visitors" widget (this week's views, live-now count, and a 30-day chart) on the GS admin home screen. It's distributed separately — see `README.md` inside the module's own folder for installation instructions.
+
+<img width="950"  alt="image" src="https://github.com/user-attachments/assets/d732f3f1-e0ca-4747-953b-1d4edc734e99" />
+
 
 ## Known limitations
 
