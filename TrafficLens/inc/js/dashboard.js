@@ -199,6 +199,10 @@
 			document.getElementById('tl-stat-unique').textContent = res.stats.unique;
 			document.getElementById('tl-stat-today').textContent  = res.stats.today;
 			document.getElementById('tl-stat-live').textContent   = res.stats.live;
+			
+			if (res.stats.live_countries) {
+				renderLiveCountries(res.stats.live_countries);
+			}
 
 			renderDailyChart(res.daily_trend);
 			renderDonut('tl-chart-device', res.device_breakdown, 0);
@@ -270,14 +274,43 @@
 	}
 
 	// ── Live feed ───────────────────────────────────────────────────────────
+	function renderLiveCountries(countries) {
+		var tbody = document.getElementById('tl-live-countries-tbody');
+		if (!tbody) return;
+
+		if (!countries || !countries.length) {
+			tbody.innerHTML = '<tr><td colspan="2" class="tl-muted" style="text-align:center;">-</td></tr>';
+			return;
+		}
+
+		tbody.innerHTML = countries.map(function (c) {
+			var flag = c.flag ? c.flag + ' ' : '';
+			return '<tr><td>' + flag + esc(c.code) + '</td><td>' + c.views + '</td></tr>';
+		}).join('');
+	}
+
 	function loadLiveFeed() {
 		tlGet('get_live_feed', {}).then(function (res) {
 			if (!res.ok) return;
 
+			// Update the counter on the stat card if it changed
+			var statLive = document.getElementById('tl-stat-live');
+			if (statLive && res.live_now !== undefined) {
+				statLive.textContent = res.live_now;
+			}
+
+			// Render the hover table list
+			if (res.live_countries) {
+				renderLiveCountries(res.live_countries);
+			}
+
 			var label = document.getElementById('tl-live-now-label');
-			label.textContent = res.live_now > 0 ? tlFormat(TL_I18N.lang_Online_Now_Template, { count: res.live_now }) : '';
+			if (label) {
+				label.textContent = res.live_now > 0 ? tlFormat(TL_I18N.lang_Online_Now_Template, { count: res.live_now }) : '';
+			}
 
 			var el = document.getElementById('tl-live-feed');
+			if (!el) return;
 			if (!res.feed.length) {
 				el.innerHTML = '<li class="tl-muted">' + esc(TL_I18N.lang_No_Recent_Activity) + '</li>';
 				return;
@@ -306,6 +339,7 @@
 
 		toggle.addEventListener('click', function () {
 			panel.hidden = !panel.hidden;
+			toggle.classList.toggle('tl-btn-active', !panel.hidden);
 		});
 
 		document.getElementById('tl-settings-save').addEventListener('click', function () {

@@ -24,7 +24,7 @@ require_once TrafficLens_PLUGIN_DIR . 'inc/queries.php';
 register_plugin(
 	TrafficLens_SLUG,
 	'TrafficLens',
-	'1.2',
+	'1.3',
 	'risingisland',
 	'https://ko-fi.com/ericmontgomery',
 	'Privacy-first visitor analytics with country, browser, and referrer breakdowns. (SQLite3 required)',

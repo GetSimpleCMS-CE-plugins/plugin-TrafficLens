@@ -121,18 +121,19 @@ function TrafficLens_dashboard_payload($range) {
 	$now         = time();
 	$today_start = strtotime('today');
 
-	$unique_set  = [];
-	$today_count = 0;
-	$live_set    = [];
-	$daily       = []; // 'Y-m-d' => ['uniques' => [ip=>true,...], 'views' => int]
-	$hourly      = array_fill(0, 24, 0);
-	$hourly_uniques = array_fill(0, 24, []); // hour => [ip=>true,...] - only needed for the "Today" chart
-	$dow         = array_fill(0, 7, 0); // 0 = Sunday
-	$device      = [];
-	$browser     = [];
-	$os_bucket   = [];
-	$country_sets = []; // code => [ip=>true,...]
-	$referrer    = [];
+	$unique_set          = [];
+	$today_count         = 0;
+	$live_set            = [];
+	$live_country_counts = [];
+	$daily               = []; // 'Y-m-d' => ['uniques' => [ip=>true,...], 'views' => int]
+	$hourly              = array_fill(0, 24, 0);
+	$hourly_uniques      = array_fill(0, 24, []); // hour => [ip=>true,...] - only needed for the "Today" chart
+	$dow                 = array_fill(0, 7, 0); // 0 = Sunday
+	$device              = [];
+	$browser             = [];
+	$os_bucket           = [];
+	$country_sets        = []; // code => [ip=>true,...]
+	$referrer            = [];
 
 	foreach ($rows as $r) {
 		$ip = $r['ip_hash'];
@@ -140,7 +141,11 @@ function TrafficLens_dashboard_payload($range) {
 
 		$unique_set[$ip] = true;
 		if ($ts >= $today_start) $today_count++;
-		if ($ts >= $now - 300)   $live_set[$ip] = true;
+		if ($ts >= $now - 300) {
+			$live_set[$ip] = true;
+			$code = $r['country_code'] ?: '??';
+			$live_country_counts[$code] = ($live_country_counts[$code] ?? 0) + 1;
+		}
 
 		$day = date('Y-m-d', $ts);
 		if (!isset($daily[$day])) $daily[$day] = ['uniques' => [], 'views' => 0];
@@ -206,6 +211,17 @@ function TrafficLens_dashboard_payload($range) {
 		$top_countries[] = ['code' => $code, 'flag' => TrafficLens_flag_emoji($code), 'count' => $cnt];
 	}
 
+	// Live countries list
+	arsort($live_country_counts);
+	$live_countries = [];
+	foreach ($live_country_counts as $code => $views) {
+		$live_countries[] = [
+			'code'  => $code,
+			'flag'  => ($code !== '??') ? TrafficLens_flag_emoji($code) : '🌐',
+			'views' => $views,
+		];
+	}
+
 	// Top referrers
 	arsort($referrer);
 	$top_referrers = [];
@@ -244,10 +260,11 @@ function TrafficLens_dashboard_payload($range) {
 	return [
 		'range' => $range,
 		'stats' => [
-			'total'  => count($rows),
-			'unique' => count($unique_set),
-			'today'  => $today_count,
-			'live'   => count($live_set),
+			'total'          => count($rows),
+			'unique'         => count($unique_set),
+			'today'          => $today_count,
+			'live'           => count($live_set),
+			'live_countries' => $live_countries,
 		],
 		'daily_trend' => [
 			'labels'  => $labels,
@@ -303,15 +320,38 @@ function TrafficLens_daily_summary() {
 		$guard++;
 	}
 
-	$live_now    = (int)$db->querySingle('SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE timestamp >= ' . ($now - 300));
+	$live_cutoff = $now - 300;
+	$live_now    = (int)$db->querySingle('SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE timestamp >= ' . $live_cutoff);
 	$week_views  = array_sum(array_slice($views, -7));
 
+	// Country breakdown for active visitors
+	$c_stmt = $db->prepare('
+		SELECT country_code, COUNT(*) as views 
+		FROM visits 
+		WHERE timestamp >= :cutoff 
+		GROUP BY country_code 
+		ORDER BY views DESC
+	');
+	$c_stmt->bindValue(':cutoff', $live_cutoff, SQLITE3_INTEGER);
+	$c_res = $c_stmt->execute();
+
+	$live_countries = [];
+	while ($row = $c_res->fetchArray(SQLITE3_ASSOC)) {
+		$code = $row['country_code'] ?: '??';
+		$live_countries[] = [
+			'code'  => $code,
+			'flag'  => ($code !== '??') ? TrafficLens_flag_emoji($code) : '🌐',
+			'views' => (int)$row['views'],
+		];
+	}
+
 	return [
-		'labels'     => $labels,
-		'uniques'    => $uniques,
-		'views'      => $views,
-		'live_now'   => $live_now,
-		'week_views' => $week_views,
+		'labels'         => $labels,
+		'uniques'        => $uniques,
+		'views'          => $views,
+		'live_now'       => $live_now,
+		'live_countries' => $live_countries,
+		'week_views'     => $week_views,
 	];
 }
 
@@ -370,9 +410,35 @@ function TrafficLens_live_feed($limit = 20) {
 		];
 	}
 
-	$live_now = (int)$db->querySingle('SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE timestamp >= ' . (time() - 300));
+	$live_cutoff = time() - 300;
+	$live_now    = (int)$db->querySingle('SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE timestamp >= ' . $live_cutoff);
 
-	return ['feed' => $feed, 'live_now' => $live_now];
+	// Country breakdown for active visitors
+	$c_stmt = $db->prepare('
+		SELECT country_code, COUNT(*) as views 
+		FROM visits 
+		WHERE timestamp >= :cutoff 
+		GROUP BY country_code 
+		ORDER BY views DESC
+	');
+	$c_stmt->bindValue(':cutoff', $live_cutoff, SQLITE3_INTEGER);
+	$c_res = $c_stmt->execute();
+
+	$live_countries = [];
+	while ($row = $c_res->fetchArray(SQLITE3_ASSOC)) {
+		$code = $row['country_code'] ?: '??';
+		$live_countries[] = [
+			'code'  => $code,
+			'flag'  => ($code !== '??') ? TrafficLens_flag_emoji($code) : '🌐',
+			'views' => (int)$row['views'],
+		];
+	}
+
+	return [
+		'feed'           => $feed,
+		'live_now'       => $live_now,
+		'live_countries' => $live_countries,
+	];
 }
 
 // CSV EXPORT  (streams directly, does not return - caller should treat as terminal)

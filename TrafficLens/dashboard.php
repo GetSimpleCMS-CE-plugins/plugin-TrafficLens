@@ -80,6 +80,21 @@ foreach (array_unique($tl_js_keys) as $k) {
 		<div class="tl-stat-card tl-stat-live">
 			<div class="tl-stat-label"><?= i18n_r('TrafficLens/lang_Live_Now') ?></div>
 			<div class="tl-stat-value" id="tl-stat-live">-</div>
+			
+			<!-- Live breakdown tooltip -->
+			<div class="tl-live-popup" id="tl-live-popup">
+				<table class="tl-table tl-table-compact">
+					<thead>
+						<tr>
+							<th><?= i18n_r('TrafficLens/lang_Pdf_Col_Country') ?></th>
+							<th><?= i18n_r('TrafficLens/lang_Col_Views') ?></th>
+						</tr>
+					</thead>
+					<tbody id="tl-live-countries-tbody">
+						<tr><td colspan="2" style="text-align:center;">-</td></tr>
+					</tbody>
+				</table>
+			</div>
 		</div>
 	</div>
 
@@ -178,9 +193,9 @@ foreach (array_unique($tl_js_keys) as $k) {
 <script src="<?= TrafficLens_PLUGIN_URL ?>inc/js/jspdf.umd.min.js"></script>
 <script src="<?= TrafficLens_PLUGIN_URL ?>inc/js/jspdf.plugin.autotable.min.js"></script>
 <script>
-	var TL_AJAX_BASE        = <?= json_encode($tl_ajax_base) ?>;
-	var TL_REFRESH_SECONDS  = <?= (int)$tl_settings['refresh_seconds'] ?>;
-	var TL_INITIAL_SETTINGS = <?= json_encode($tl_settings) ?>;
-	var TL_I18N              = <?= json_encode($tl_i18n_js, JSON_UNESCAPED_UNICODE) ?>;
+	var TL_AJAX_BASE		= <?= json_encode($tl_ajax_base) ?>;
+	var TL_REFRESH_SECONDS	= <?= (int)$tl_settings['refresh_seconds'] ?>;
+	var TL_INITIAL_SETTINGS	= <?= json_encode($tl_settings) ?>;
+	var TL_I18N				= <?= json_encode($tl_i18n_js, JSON_UNESCAPED_UNICODE) ?>;
 </script>
 <script src="<?= TrafficLens_PLUGIN_URL ?>inc/js/dashboard.js"></script>
