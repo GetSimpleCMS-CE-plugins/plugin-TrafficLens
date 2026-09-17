@@ -1,5 +1,6 @@
-.bodycontent {grid-template-columns: 100% 0% !important;}
-#sidebar{display:none;}
+#maincontent { width: 100% !important;}
+.bodycontent { grid-template-columns: 100% 0% !important;}
+#sidebar{ display:none;}
 
 .tl-wrap {
 	font-family: system-ui, -apple-system, sans-serif;
@@ -212,7 +213,7 @@
 	padding: 10px;
 	z-index: 1000;
 	min-width: 180px;
-	max-height: 220px;
+	max-height: 310px;
 	overflow-y: auto;
 	font-size: 13px;
 }
