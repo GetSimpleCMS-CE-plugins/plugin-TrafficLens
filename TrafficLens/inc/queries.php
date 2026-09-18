@@ -237,21 +237,24 @@ function TrafficLens_dashboard_payload($range) {
 	// flag it as unavailable rather than show a misleading 100/0 split.
 	$new_vs_returning = ['available' => false, 'new' => 0, 'returning' => 0];
 	if ($start > 0 && !empty($unique_set)) {
-		$ip_list = array_keys($unique_set);
-		$first_seen_map = [];
-		foreach (array_chunk($ip_list, 500) as $chunk) {
-			$placeholders = implode(',', array_fill(0, count($chunk), '?'));
-			$stmt = $db->prepare("SELECT ip_hash, MIN(timestamp) as fs FROM visits WHERE ip_hash IN ($placeholders) GROUP BY ip_hash");
-			foreach ($chunk as $idx => $ip) { $stmt->bindValue($idx + 1, $ip, SQLITE3_TEXT); }
-			$res = $stmt->execute();
-			while ($row = $res->fetchArray(SQLITE3_ASSOC)) { $first_seen_map[$row['ip_hash']] = (int)$row['fs']; }
+		$earliest = $db->querySingle('SELECT MIN(timestamp) FROM visits');
+		if ($earliest !== false && $earliest !== null && (int)$earliest < $start) {
+			$ip_list = array_keys($unique_set);
+			$first_seen_map = [];
+			foreach (array_chunk($ip_list, 500) as $chunk) {
+				$placeholders = implode(',', array_fill(0, count($chunk), '?'));
+				$stmt = $db->prepare("SELECT ip_hash, MIN(timestamp) as fs FROM visits WHERE ip_hash IN ($placeholders) GROUP BY ip_hash");
+				foreach ($chunk as $idx => $ip) { $stmt->bindValue($idx + 1, $ip, SQLITE3_TEXT); }
+				$res = $stmt->execute();
+				while ($row = $res->fetchArray(SQLITE3_ASSOC)) { $first_seen_map[$row['ip_hash']] = (int)$row['fs']; }
+			}
+			$new_count = 0; $returning_count = 0;
+			foreach ($ip_list as $ip) {
+				$fs = $first_seen_map[$ip] ?? $now;
+				if ($fs < $start) $returning_count++; else $new_count++;
+			}
+			$new_vs_returning = ['available' => true, 'new' => $new_count, 'returning' => $returning_count];
 		}
-		$new_count = 0; $returning_count = 0;
-		foreach ($ip_list as $ip) {
-			$fs = $first_seen_map[$ip] ?? $now;
-			if ($fs < $start) $returning_count++; else $new_count++;
-		}
-		$new_vs_returning = ['available' => true, 'new' => $new_count, 'returning' => $returning_count];
 	}
 
 	// Session-based entry/exit/bounce
