@@ -2,21 +2,6 @@
 
 /*
  * Dashboard data layer.
- *
- * Design choice: for the main dashboard payload, we pull all rows in the
- * selected range ONCE (ordered by ip_hash, timestamp) and aggregate everything
- * - stats, daily trend, peak hours, device/browser breakdown, countries,
- *   referrers, and the session/bounce approximation - in a single PHP pass.
- *
- * This keeps day-bucketing consistent with PHP's own timezone handling
- * (avoids SQLite's 'localtime' modifier disagreeing with date_default_timezone_set),
- * and avoids juggling ~10 separate aggregate SQL queries with their own edge cases.
- * For typical GS-CE site traffic volumes this is fine; if a site's dataset ever
- * gets large enough for this to matter, that's a good problem to have and worth
- * revisiting with pre-aggregated tables at that point.
- *
- * Top Pages is the one exception - kept as a real paginated/sorted SQL query,
- * since it needs independent sorting, search and paging from the UI.
  */
 
 // RANGE HELPERS
@@ -50,12 +35,53 @@ function TrafficLens_flag_emoji($iso) {
 	return $flag;
 }
 
+// BOT ACTIVITY  (independent of the bot_mode filter - this is the one place bot rows are read on purpose)
+
+function TrafficLens_bot_stats($start) {
+	$db = TrafficLens_db();
+
+	$stmt = $db->prepare('SELECT COUNT(*) AS total, COALESCE(SUM(is_bot), 0) AS bots FROM visits WHERE timestamp >= :start');
+	$stmt->bindValue(':start', $start, SQLITE3_INTEGER);
+	$t = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
+	$all_hits = (int)($t['total'] ?? 0);
+	$bot_hits = (int)($t['bots'] ?? 0);
+
+	// Rows recorded before bot names existed have a NULL name - they are grouped under '' and labelled in the UI.
+	$stmt = $db->prepare("
+		SELECT COALESCE(bot_name, '') AS name, COUNT(*) AS hits, MAX(timestamp) AS last_seen
+		FROM visits WHERE is_bot = 1 AND timestamp >= :start
+		GROUP BY COALESCE(bot_name, '')
+		ORDER BY hits DESC, name ASC
+		LIMIT 10
+	");
+	$stmt->bindValue(':start', $start, SQLITE3_INTEGER);
+	$res = $stmt->execute();
+
+	$list = [];
+	while ($r = $res->fetchArray(SQLITE3_ASSOC)) {
+		$list[] = [
+			'name'      => $r['name'],
+			'hits'      => (int)$r['hits'],
+			'last_seen' => date('Y-m-d H:i', (int)$r['last_seen']),
+		];
+	}
+
+	$settings = TrafficLens_settings();
+
+	return [
+		'total' => $bot_hits,
+		'share' => $all_hits > 0 ? round(($bot_hits / $all_hits) * 100, 1) : 0.0,
+		'list'  => $list,
+		'mode'  => $settings['bot_mode'] ?? 'separate',
+	];
+}
+
 // MAIN DASHBOARD PAYLOAD
 
 function TrafficLens_get_range_rows($db, $start) {
 	$stmt = $db->prepare('
 		SELECT ip_hash, country_code, referrer_domain, browser, os, device_type, url, timestamp
-		FROM visits WHERE timestamp >= :start
+		FROM visits WHERE timestamp >= :start' . TrafficLens_bot_sql() . '
 		ORDER BY ip_hash, timestamp
 	');
 	$stmt->bindValue(':start', $start, SQLITE3_INTEGER);
@@ -237,13 +263,13 @@ function TrafficLens_dashboard_payload($range) {
 	// flag it as unavailable rather than show a misleading 100/0 split.
 	$new_vs_returning = ['available' => false, 'new' => 0, 'returning' => 0];
 	if ($start > 0 && !empty($unique_set)) {
-		$earliest = $db->querySingle('SELECT MIN(timestamp) FROM visits');
+		$earliest = $db->querySingle('SELECT MIN(timestamp) FROM visits WHERE 1 = 1' . TrafficLens_bot_sql());
 		if ($earliest !== false && $earliest !== null && (int)$earliest < $start) {
 			$ip_list = array_keys($unique_set);
 			$first_seen_map = [];
 			foreach (array_chunk($ip_list, 500) as $chunk) {
 				$placeholders = implode(',', array_fill(0, count($chunk), '?'));
-				$stmt = $db->prepare("SELECT ip_hash, MIN(timestamp) as fs FROM visits WHERE ip_hash IN ($placeholders) GROUP BY ip_hash");
+				$stmt = $db->prepare("SELECT ip_hash, MIN(timestamp) as fs FROM visits WHERE ip_hash IN ($placeholders)" . TrafficLens_bot_sql() . " GROUP BY ip_hash");
 				foreach ($chunk as $idx => $ip) { $stmt->bindValue($idx + 1, $ip, SQLITE3_TEXT); }
 				$res = $stmt->execute();
 				while ($row = $res->fetchArray(SQLITE3_ASSOC)) { $first_seen_map[$row['ip_hash']] = (int)$row['fs']; }
@@ -287,6 +313,7 @@ function TrafficLens_dashboard_payload($range) {
 		'exit_pages'        => $session_stats['exit_pages'],
 		'bounce_rate'       => $session_stats['bounce_rate'],
 		'total_sessions'    => $session_stats['total_sessions'],
+		'bots'              => TrafficLens_bot_stats($start),
 	];
 }
 
@@ -297,7 +324,7 @@ function TrafficLens_daily_summary() {
 	$start = TrafficLens_range_start('30d');
 	$now   = time();
 
-	$stmt = $db->prepare('SELECT ip_hash, timestamp FROM visits WHERE timestamp >= :start ORDER BY timestamp');
+	$stmt = $db->prepare('SELECT ip_hash, timestamp FROM visits WHERE timestamp >= :start' . TrafficLens_bot_sql() . ' ORDER BY timestamp');
 	$stmt->bindValue(':start', $start, SQLITE3_INTEGER);
 	$res = $stmt->execute();
 
@@ -324,14 +351,14 @@ function TrafficLens_daily_summary() {
 	}
 
 	$live_cutoff = $now - 300;
-	$live_now    = (int)$db->querySingle('SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE timestamp >= ' . $live_cutoff);
+	$live_now    = (int)$db->querySingle('SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE timestamp >= ' . $live_cutoff . TrafficLens_bot_sql());
 	$week_views  = array_sum(array_slice($views, -7));
 
 	// Country breakdown for active visitors
 	$c_stmt = $db->prepare('
 		SELECT country_code, COUNT(*) as views 
 		FROM visits 
-		WHERE timestamp >= :cutoff 
+		WHERE timestamp >= :cutoff' . TrafficLens_bot_sql() . ' 
 		GROUP BY country_code 
 		ORDER BY views DESC
 	');
@@ -368,7 +395,7 @@ function TrafficLens_top_pages($range, $page, $per_page, $sort, $dir, $search) {
 	$sort_col = $sort_map[$sort] ?? 'views';
 	$dir      = (strtoupper($dir) === 'ASC') ? 'ASC' : 'DESC';
 
-	$where = 'WHERE timestamp >= :start';
+	$where = 'WHERE timestamp >= :start' . TrafficLens_bot_sql();
 	if ($search !== '') $where .= ' AND url LIKE :search';
 
 	$count_stmt = $db->prepare("SELECT COUNT(*) as c FROM (SELECT url FROM visits $where GROUP BY url)");
@@ -399,7 +426,7 @@ function TrafficLens_top_pages($range, $page, $per_page, $sort, $dir, $search) {
 
 function TrafficLens_live_feed($limit = 20) {
 	$db = TrafficLens_db();
-	$stmt = $db->prepare('SELECT country_code, url, timestamp FROM visits ORDER BY id DESC LIMIT :limit');
+	$stmt = $db->prepare('SELECT country_code, url, timestamp FROM visits WHERE 1 = 1' . TrafficLens_bot_sql() . ' ORDER BY id DESC LIMIT :limit');
 	$stmt->bindValue(':limit', (int)$limit, SQLITE3_INTEGER);
 	$res = $stmt->execute();
 
@@ -414,13 +441,13 @@ function TrafficLens_live_feed($limit = 20) {
 	}
 
 	$live_cutoff = time() - 300;
-	$live_now    = (int)$db->querySingle('SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE timestamp >= ' . $live_cutoff);
+	$live_now    = (int)$db->querySingle('SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE timestamp >= ' . $live_cutoff . TrafficLens_bot_sql());
 
 	// Country breakdown for active visitors
 	$c_stmt = $db->prepare('
 		SELECT country_code, COUNT(*) as views 
 		FROM visits 
-		WHERE timestamp >= :cutoff 
+		WHERE timestamp >= :cutoff' . TrafficLens_bot_sql() . ' 
 		GROUP BY country_code 
 		ORDER BY views DESC
 	');
@@ -451,7 +478,7 @@ function TrafficLens_export_csv($range) {
 	$start = TrafficLens_range_start($range);
 
 	$stmt = $db->prepare('
-		SELECT country_code, referrer_domain, browser, os, device_type, url, timestamp
+		SELECT country_code, referrer_domain, browser, os, device_type, url, timestamp, is_bot, bot_name
 		FROM visits WHERE timestamp >= :start ORDER BY timestamp DESC
 	');
 	$stmt->bindValue(':start', $start, SQLITE3_INTEGER);
@@ -461,7 +488,7 @@ function TrafficLens_export_csv($range) {
 	header('Content-Disposition: attachment; filename="trafficlens-export-' . date('Y-m-d') . '.csv"');
 
 	$out = fopen('php://output', 'w');
-	fputcsv($out, ['date', 'time', 'country', 'referrer', 'browser', 'os', 'device', 'url']);
+	fputcsv($out, ['date', 'time', 'country', 'referrer', 'browser', 'os', 'device', 'url', 'is_bot', 'bot_name']);
 	while ($r = $res->fetchArray(SQLITE3_ASSOC)) {
 		fputcsv($out, [
 			date('Y-m-d', (int)$r['timestamp']),
@@ -472,6 +499,8 @@ function TrafficLens_export_csv($range) {
 			$r['os'],
 			$r['device_type'],
 			$r['url'],
+			(int)$r['is_bot'],
+			$r['bot_name'],
 		]);
 	}
 	fclose($out);

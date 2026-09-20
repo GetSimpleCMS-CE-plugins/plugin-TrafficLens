@@ -46,8 +46,12 @@ function TrafficLens_handle_ajax($action) {
 		}
 
 		case 'save_settings': {
+			$bot_mode = $_POST['bot_mode'] ?? TrafficLens_settings()['bot_mode'];
+			if (!in_array($bot_mode, TrafficLens_bot_modes(), true)) $bot_mode = 'separate';
+
 			$new = [
 				'exclude_admin'   => !empty($_POST['exclude_admin']),
+				'bot_mode'        => $bot_mode,
 				'retention_days'  => max(1, (int)($_POST['retention_days'] ?? 400)),
 				'refresh_seconds' => max(15, (int)($_POST['refresh_seconds'] ?? 60)),
 			];

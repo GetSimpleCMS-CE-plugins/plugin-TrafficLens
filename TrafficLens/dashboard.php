@@ -18,6 +18,8 @@ $tl_js_keys = [
 	'lang_Pdf_Col_Referrer', 'lang_Pdf_Col_Visits', 'lang_Entry_Pages', 'lang_Pdf_Col_Entry_Page',
 	'lang_Exit_Pages', 'lang_Pdf_Col_Exit_Page', 'lang_Pdf_Col_Sessions', 'lang_Pdf_Bounce_Note_Template',
 	'lang_Top_Pages', 'lang_Col_URL', 'lang_Col_Views', 'lang_Col_Uniques', 'lang_Pdf_Footer', 'lang_Pdf_Export_Failed',
+	'lang_Bot_Summary_Template', 'lang_Bot_Last_Seen_Template', 'lang_No_Bots', 'lang_Bot_Skip_Note',
+	'lang_Bot_Unidentified', 'lang_Bot_Unknown_Client', 'lang_Bot_Other',
 ];
 $tl_i18n_js = [];
 foreach (array_unique($tl_js_keys) as $k) {
@@ -50,6 +52,15 @@ foreach (array_unique($tl_js_keys) as $k) {
 			<input type="checkbox" id="tl-set-exclude-admin">
 			<?= i18n_r('TrafficLens/lang_Exclude_Admin') ?>
 		</label>
+		<label class="tl-field-row">
+			<?= i18n_r('TrafficLens/lang_Bots_Label') ?>
+			<select id="tl-set-bot-mode">
+				<option value="include"><?= i18n_r('TrafficLens/lang_Bots_Include') ?></option>
+				<option value="separate"><?= i18n_r('TrafficLens/lang_Bots_Separate') ?></option>
+				<option value="skip"><?= i18n_r('TrafficLens/lang_Bots_Skip') ?></option>
+			</select>
+		</label>
+		<div class="tl-field-row tl-muted"><?= i18n_r('TrafficLens/lang_Bots_Help') ?></div>
 		<label class="tl-field-row">
 			<?= i18n_r('TrafficLens/lang_Keep_Data_For') ?>
 			<input type="number" id="tl-set-retention" min="1" style="width:5rem;"> <?= i18n_r('TrafficLens/lang_Days') ?>
@@ -98,7 +109,7 @@ foreach (array_unique($tl_js_keys) as $k) {
 		</div>
 	</div>
 
-	<div class="tl-card">
+	<div class="tl-card tl-card-full">
 		<h3 id="tl-chart-daily-title"><?= i18n_r('TrafficLens/lang_Daily_Visitors') ?></h3>
 		<div class="tl-chart-box tl-chart-box-wide"><canvas id="tl-chart-daily"></canvas></div>
 	</div>
@@ -154,7 +165,7 @@ foreach (array_unique($tl_js_keys) as $k) {
 		</div>
 	</div>
 
-	<div class="tl-card">
+	<div class="tl-card tl-card-full">
 		<div class="tl-pages-header">
 			<h3><?= i18n_r('TrafficLens/lang_Top_Pages') ?></h3>
 			<input type="search" id="tl-pages-search" placeholder="<?= htmlspecialchars(i18n_r('TrafficLens/lang_Search_URL')) ?>" class="tl-search">
@@ -174,11 +185,20 @@ foreach (array_unique($tl_js_keys) as $k) {
 		<div class="tl-pagination" id="tl-pages-pagination"></div>
 	</div>
 
-	<div class="tl-card">
-		<h3><?= i18n_r('TrafficLens/lang_Live_Activity') ?> <span class="tl-muted" id="tl-live-now-label"></span></h3>
-		<ul class="tl-list tl-live-feed" id="tl-live-feed">
-			<li class="tl-muted"><?= i18n_r('TrafficLens/lang_Loading') ?></li>
-		</ul>
+	<div class="tl-grid tl-grid-pair">
+		<div class="tl-card">
+			<h3><?= i18n_r('TrafficLens/lang_Live_Activity') ?> <span class="tl-muted" id="tl-live-now-label"></span></h3>
+			<ul class="tl-list tl-live-feed" id="tl-live-feed">
+				<li class="tl-muted"><?= i18n_r('TrafficLens/lang_Loading') ?></li>
+			</ul>
+		</div>
+		<div class="tl-card">
+			<h3><?= i18n_r('TrafficLens/lang_Bot_Activity') ?> <span class="tl-muted" id="tl-bots-summary"></span></h3>
+			<div class="tl-muted tl-bots-note" id="tl-bots-note" hidden></div>
+			<ul class="tl-list tl-list-accent-slate" id="tl-list-bots">
+				<li class="tl-muted"><?= i18n_r('TrafficLens/lang_Loading') ?></li>
+			</ul>
+		</div>
 	</div>
 
 	<div class="tl-footer">

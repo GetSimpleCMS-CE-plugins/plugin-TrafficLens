@@ -19,6 +19,11 @@ $i18n = [
 
 	// ── Settings panel ───────────────────────────────────────────────────────
 	'lang_Exclude_Admin'	=> 'Exclude my own visits while logged in',
+	'lang_Bots_Label'		=> 'Bot traffic',
+	'lang_Bots_Include'		=> 'Count bots as visitors',
+	'lang_Bots_Separate'	=> 'Keep bots out of the statistics (still recorded)',
+	'lang_Bots_Skip'		=> 'Do not record bots at all',
+	'lang_Bots_Help'		=> 'Bots already recorded stay in the database, so you can switch back at any time. "Do not record" only applies to new visits.',
 	'lang_Keep_Data_For'	=> 'Keep data for',
 	'lang_Days'				=> 'days',
 	'lang_Auto_Refresh_Every' => 'Auto-refresh live feed every',
@@ -49,6 +54,7 @@ $i18n = [
 	'lang_Exit_Pages'		=> 'Exit pages',
 	'lang_Top_Pages'		=> 'Top pages',
 	'lang_Live_Activity'	=> 'Live activity',
+	'lang_Bot_Activity'		=> 'Bot activity',
 
 	// ── Chart series labels ──────────────────────────────────────────────────
 	'lang_Series_Page_Views' => 'Page views',
@@ -63,6 +69,11 @@ $i18n = [
 	'lang_No_Data_Range'	=> 'No data for this range.',
 	'lang_No_Pages_Found'	=> 'No pages found.',
 	'lang_No_Recent_Activity' => 'No recent activity.',
+	'lang_No_Bots'			=> 'No bot traffic recorded for this range.',
+	'lang_Bot_Skip_Note'	=> 'Bots are no longer being recorded. This shows what was recorded earlier.',
+	'lang_Bot_Unidentified'	=> 'Unidentified bot',
+	'lang_Bot_Unknown_Client' => 'Unknown client (no user agent)',
+	'lang_Bot_Other'		=> 'Other bot',
 	'lang_Prev'				=> '« Prev',
 	'lang_Next'				=> 'Next »',
 
@@ -71,6 +82,8 @@ $i18n = [
 	'lang_Pagination_Template'	=> 'Page {page} of {totalPages} ({total} pages tracked)',
 	'lang_Online_Now_Template'	=> '({count} online now)',
 	'lang_Bounce_Rate_Template'	=> '({rate}% bounce rate)',
+	'lang_Bot_Summary_Template'	=> '({hits} hits, {pct}% of all traffic)',
+	'lang_Bot_Last_Seen_Template' => 'last seen {time}',
 	'lang_Newret_New_Template'	=> 'New: {count} ({pct}%)',
 	'lang_Newret_Returning_Template' => 'Returning: {count} ({pct}%)',
 	'lang_Newret_Unavailable'	=> 'Select a shorter time range (not "All time") to see new vs. returning visitors.',

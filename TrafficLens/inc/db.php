@@ -40,6 +40,9 @@ function TrafficLens_db() {
 	return $db;
 }
 
+// Bump when the schema changes; init_db() migrates anything older.
+define('TrafficLens_SCHEMA_VERSION', 2);
+
 function TrafficLens_init_db() {
 	$db = TrafficLens_db();
 	$db->exec("
@@ -52,12 +55,43 @@ function TrafficLens_init_db() {
 			os              TEXT,
 			device_type     TEXT,
 			url             TEXT    NOT NULL,
-			timestamp       INTEGER NOT NULL
+			timestamp       INTEGER NOT NULL,
+			is_bot          INTEGER NOT NULL DEFAULT 0,
+			bot_name        TEXT
 		);
 		CREATE INDEX IF NOT EXISTS idx_visits_ts      ON visits(timestamp);
 		CREATE INDEX IF NOT EXISTS idx_visits_ip_hash ON visits(ip_hash);
 		CREATE INDEX IF NOT EXISTS idx_visits_url     ON visits(url);
 	");
+
+	// PRAGMA user_version is a cheap integer read, so this costs almost nothing per page view.
+	if ((int)$db->querySingle('PRAGMA user_version') < TrafficLens_SCHEMA_VERSION) {
+		TrafficLens_migrate_db($db);
+	}
+}
+
+function TrafficLens_migrate_db($db) {
+	// BEGIN IMMEDIATE makes a concurrent request wait, then re-check the columns below,
+	// so two page views arriving at once can't both try to ALTER the table.
+	$db->exec('BEGIN IMMEDIATE');
+
+	$has_is_bot = false;
+	$cols = $db->query('PRAGMA table_info(visits)');
+	while ($c = $cols->fetchArray(SQLITE3_ASSOC)) {
+		if ($c['name'] === 'is_bot') $has_is_bot = true;
+	}
+
+	if (!$has_is_bot) {
+		// v2: bot flag. Rows from before this version have no user agent stored, so the only
+		// ones we can identify are those the old parser already tagged device_type = 'bot'.
+		$db->exec('ALTER TABLE visits ADD COLUMN is_bot INTEGER NOT NULL DEFAULT 0');
+		$db->exec('ALTER TABLE visits ADD COLUMN bot_name TEXT');
+		$db->exec("UPDATE visits SET is_bot = 1 WHERE device_type = 'bot'");
+	}
+	$db->exec('CREATE INDEX IF NOT EXISTS idx_visits_is_bot ON visits(is_bot, timestamp)');
+	$db->exec('PRAGMA user_version = ' . (int)TrafficLens_SCHEMA_VERSION);
+
+	$db->exec('COMMIT');
 }
 
 // SETTINGS  (simple JSON store - swapped for a proper admin form in the dashboard phase)
@@ -65,6 +99,7 @@ function TrafficLens_init_db() {
 function TrafficLens_default_settings() {
 	return [
 		'exclude_admin'    => true,  // don't log visits from logged-in GS users browsing the front-end
+		'bot_mode'         => 'separate', // 'include' = count bots like visitors | 'separate' = record but keep out of stats | 'skip' = don't record
 		'retention_days'   => 400,   // prune rows older than this on each write
 		'refresh_seconds'  => 60,    // dashboard auto-refresh interval (used by the future dashboard JS)
 	];
@@ -91,6 +126,25 @@ function TrafficLens_save_settings($new_settings) {
 	$merged = array_merge(TrafficLens_default_settings(), $new_settings);
 	file_put_contents(TrafficLens_settings_path(), json_encode($merged, JSON_PRETTY_PRINT));
 	return $merged;
+}
+
+// BOT MODE HELPERS
+
+function TrafficLens_bot_modes() {
+	return ['include', 'separate', 'skip'];
+}
+
+// True when bot rows must be kept out of the human-facing statistics.
+// 'skip' also hides bots: rows recorded earlier (or by an older version) stay in the
+// database but never count as visitors.
+function TrafficLens_hide_bots() {
+	$s = TrafficLens_settings();
+	return ($s['bot_mode'] ?? 'separate') !== 'include';
+}
+
+// SQL fragment to append to a WHERE clause that already has a condition.
+function TrafficLens_bot_sql() {
+	return TrafficLens_hide_bots() ? ' AND is_bot = 0' : '';
 }
 
 // GEO LOOKUP

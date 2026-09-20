@@ -66,7 +66,8 @@
 	margin-bottom: .6rem;
 	font-size: .875rem;
 }
-.tl-field-row input[type=number] {
+.tl-field-row input[type=number],
+.tl-field-row select {
 	padding: .3rem .5rem;
 	border: 1px solid #d0d5dd;
 	border-radius: 4px;
@@ -96,6 +97,7 @@
 }
 .tl-grid-charts { grid-template-columns: repeat(3, 1fr); }
 .tl-grid-lists  { grid-template-columns: repeat(4, 1fr); }
+.tl-grid-pair   { grid-template-columns: repeat(2, 1fr); }
 
 .tl-card {
 	background: #fff;
@@ -103,6 +105,8 @@
 	border-radius: 8px;
 	padding: 1rem 1.1rem;
 }
+.tl-card-full { margin-bottom: 1.25rem;}
+
 .tl-chart-box { position: relative; height: 260px; }
 .tl-chart-box-sm { height: 220px; }
 .tl-chart-box-wide { height: 300px; }
@@ -112,6 +116,7 @@
 	.tl-stats-grid  { grid-template-columns: repeat(2, 1fr); }
 	.tl-grid-charts { grid-template-columns: 1fr; }
 	.tl-grid-lists  { grid-template-columns: repeat(2, 1fr); }
+	.tl-grid-pair   { grid-template-columns: 1fr; }
 }
 
 /* ── Lists ──────────────────────────────────────────────────────────── */
@@ -131,6 +136,8 @@
 .tl-list-accent-purple .tl-list-count { color: #9b59b6; }
 .tl-list-accent-amber  .tl-list-count { color: #e67e22; }
 .tl-list-accent-red	.tl-list-count { color: #e74c3c; }
+.tl-list-accent-slate  .tl-list-count { color: #5b6b7f; }
+.tl-bots-note { margin-bottom: .5rem; }
 
 /* ── New vs returning ──────────────────────────────────────────────── */
 .tl-newret-bar {

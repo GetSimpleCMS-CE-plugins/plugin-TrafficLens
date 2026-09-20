@@ -3,7 +3,7 @@
 /*
 Plugin Name: TrafficLens
 Description: Privacy-first visitor analytics with country, browser, and referrer breakdowns. (SQLite3 required)
-Version: 1.2
+Version: 1.4
 Author: risingisland
 Author URI: https://ko-fi.com/ericmontgomery
 */
@@ -24,7 +24,7 @@ require_once TrafficLens_PLUGIN_DIR . 'inc/queries.php';
 register_plugin(
 	TrafficLens_SLUG,
 	'TrafficLens',
-	'1.3',
+	'1.4',
 	'risingisland',
 	'https://ko-fi.com/ericmontgomery',
 	'Privacy-first visitor analytics with country, browser, and referrer breakdowns. (SQLite3 required)',
@@ -71,6 +71,12 @@ function TrafficLens_track_visit() {
 	}
 	$current_url = filter_var($current_url, FILTER_SANITIZE_URL);
 
+	// Parse the UA first so 'skip' mode can bail out before the geo lookup and hashing.
+	$ua = TrafficLens_parse_ua($_SERVER['HTTP_USER_AGENT'] ?? '');
+	if ($ua['is_bot'] && ($settings['bot_mode'] ?? 'separate') === 'skip') {
+		return;
+	}
+
 	$raw_ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
 	// Geo lookup MUST happen before hashing - the raw IP is never stored.
@@ -86,13 +92,12 @@ function TrafficLens_track_visit() {
 		}
 	}
 
-	$ua = TrafficLens_parse_ua($_SERVER['HTTP_USER_AGENT'] ?? '');
 	$now = time();
 
 	$db = TrafficLens_db();
 	$stmt = $db->prepare('
-		INSERT INTO visits (ip_hash, country_code, referrer_domain, browser, os, device_type, url, timestamp)
-		VALUES (:ip_hash, :country_code, :referrer_domain, :browser, :os, :device_type, :url, :ts)
+		INSERT INTO visits (ip_hash, country_code, referrer_domain, browser, os, device_type, is_bot, bot_name, url, timestamp)
+		VALUES (:ip_hash, :country_code, :referrer_domain, :browser, :os, :device_type, :is_bot, :bot_name, :url, :ts)
 	');
 	$stmt->bindValue(':ip_hash',         $ip_hash,               SQLITE3_TEXT);
 	$stmt->bindValue(':country_code',    $country_code,          SQLITE3_TEXT);
@@ -100,6 +105,8 @@ function TrafficLens_track_visit() {
 	$stmt->bindValue(':browser',         $ua['browser'],         SQLITE3_TEXT);
 	$stmt->bindValue(':os',              $ua['os'],              SQLITE3_TEXT);
 	$stmt->bindValue(':device_type',     $ua['device_type'],     SQLITE3_TEXT);
+	$stmt->bindValue(':is_bot',          $ua['is_bot'],          SQLITE3_INTEGER);
+	$stmt->bindValue(':bot_name',        $ua['bot_name'],        SQLITE3_TEXT);
 	$stmt->bindValue(':url',             $current_url,           SQLITE3_TEXT);
 	$stmt->bindValue(':ts',              $now,                   SQLITE3_INTEGER);
 	$stmt->execute();

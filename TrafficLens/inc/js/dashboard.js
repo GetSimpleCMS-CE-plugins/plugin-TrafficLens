@@ -170,6 +170,39 @@
 		el.innerHTML = html;
 	}
 
+	// Bot names are stored in English; the three generic ones are translated here.
+	function botLabel(name) {
+		if (!name) return TL_I18N.lang_Bot_Unidentified;
+		if (name === 'Unknown client') return TL_I18N.lang_Bot_Unknown_Client;
+		if (name === 'Other bot') return TL_I18N.lang_Bot_Other;
+		return name;
+	}
+
+	function renderBots(b) {
+		if (!b) return;
+		var list = document.getElementById('tl-list-bots');
+		var summary = document.getElementById('tl-bots-summary');
+		var note = document.getElementById('tl-bots-note');
+		if (!list || !summary || !note) return;
+
+		summary.textContent = b.total > 0 ? tlFormat(TL_I18N.lang_Bot_Summary_Template, { hits: b.total, pct: b.share }) : '';
+
+		// In "don't record" mode the card only shows what was recorded earlier - say so.
+		note.textContent = (b.mode === 'skip') ? TL_I18N.lang_Bot_Skip_Note : '';
+		note.hidden = (b.mode !== 'skip');
+
+		if (!b.list || !b.list.length) {
+			list.innerHTML = '<li class="tl-muted">' + esc(TL_I18N.lang_No_Bots) + '</li>';
+			return;
+		}
+		list.innerHTML = b.list.map(function (r) {
+			var label = botLabel(r.name);
+			var tip = label + ' - ' + tlFormat(TL_I18N.lang_Bot_Last_Seen_Template, { time: r.last_seen });
+			return '<li><span class="tl-list-key" title="' + esc(tip) + '">' + esc(label) + '</span>' +
+				'<span class="tl-list-count">' + r.hits + '</span></li>';
+		}).join('');
+	}
+
 	function renderNewVsReturning(nr) {
 		var el = document.getElementById('tl-newret-body');
 		if (!nr.available) {
@@ -211,6 +244,7 @@
 			renderHourlyChart(res.hourly);
 			renderDowChart(res.day_of_week);
 			renderNewVsReturning(res.new_vs_returning);
+			renderBots(res.bots);
 
 			renderKeyCountList(document.getElementById('tl-list-countries'), res.top_countries, 'code', function (it) {
 				return (it.flag ? it.flag + ' ' : '') + esc(it.code);
@@ -334,6 +368,7 @@
 		var panel  = document.getElementById('tl-settings-panel');
 
 		document.getElementById('tl-set-exclude-admin').checked = !!TL_INITIAL_SETTINGS.exclude_admin;
+		document.getElementById('tl-set-bot-mode').value        = TL_INITIAL_SETTINGS.bot_mode || 'separate';
 		document.getElementById('tl-set-retention').value       = TL_INITIAL_SETTINGS.retention_days;
 		document.getElementById('tl-set-refresh').value         = TL_INITIAL_SETTINGS.refresh_seconds;
 
@@ -345,6 +380,7 @@
 		document.getElementById('tl-settings-save').addEventListener('click', function () {
 			var status = document.getElementById('tl-settings-status');
 			var body = 'exclude_admin=' + (document.getElementById('tl-set-exclude-admin').checked ? '1' : '0') +
+				'&bot_mode=' + encodeURIComponent(document.getElementById('tl-set-bot-mode').value) +
 				'&retention_days=' + encodeURIComponent(document.getElementById('tl-set-retention').value) +
 				'&refresh_seconds=' + encodeURIComponent(document.getElementById('tl-set-refresh').value);
 
@@ -354,6 +390,10 @@
 					status.textContent = TL_I18N.lang_Saved;
 					TL_REFRESH_SECONDS = res.settings.refresh_seconds;
 					startLiveTimer();
+					// The bot setting changes what every query returns, so redraw straight away.
+					loadDashboard();
+					loadTopPages();
+					loadLiveFeed();
 					setTimeout(function () { status.textContent = ''; }, 2000);
 				} else {
 					status.textContent = TL_I18N.lang_Save_Failed;

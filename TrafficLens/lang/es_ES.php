@@ -19,6 +19,11 @@ $i18n = [
 
 	// ── Panel de ajustes ─────────────────────────────────────────────────────
 	'lang_Exclude_Admin'	=> 'Excluir mis propias visitas mientras esté conectado',
+	'lang_Bots_Label'		=> 'Tráfico de bots',
+	'lang_Bots_Include'		=> 'Contar los bots como visitantes',
+	'lang_Bots_Separate'	=> 'Excluir los bots de las estadísticas (se siguen registrando)',
+	'lang_Bots_Skip'		=> 'No registrar bots',
+	'lang_Bots_Help'		=> 'Los bots ya registrados permanecen en la base de datos, así que puedes volver atrás en cualquier momento. "No registrar bots" solo se aplica a las visitas nuevas.',
 	'lang_Keep_Data_For'	=> 'Conservar datos durante',
 	'lang_Days'				=> 'días',
 	'lang_Auto_Refresh_Every' => 'Actualizar la actividad en vivo cada',
@@ -49,6 +54,7 @@ $i18n = [
 	'lang_Exit_Pages'		=> 'Páginas de salida',
 	'lang_Top_Pages'		=> 'Páginas principales',
 	'lang_Live_Activity'	=> 'Actividad en vivo',
+	'lang_Bot_Activity'		=> 'Actividad de bots',
 
 	// ── Etiquetas de series del gráfico ───────────────────────────────────────
 	'lang_Series_Page_Views' => 'Visitas de página',
@@ -63,6 +69,11 @@ $i18n = [
 	'lang_No_Data_Range'	=> 'No hay datos para este período.',
 	'lang_No_Pages_Found'	=> 'No se encontraron páginas.',
 	'lang_No_Recent_Activity' => 'No hay actividad reciente.',
+	'lang_No_Bots'			=> 'No se registró tráfico de bots en este período.',
+	'lang_Bot_Skip_Note'	=> 'Ya no se registran bots. Aquí se muestra lo registrado anteriormente.',
+	'lang_Bot_Unidentified'	=> 'Bot no identificado',
+	'lang_Bot_Unknown_Client' => 'Cliente desconocido (sin user agent)',
+	'lang_Bot_Other'		=> 'Otro bot',
 	'lang_Prev'				=> '« Anterior',
 	'lang_Next'				=> 'Siguiente »',
 
@@ -71,6 +82,8 @@ $i18n = [
 	'lang_Pagination_Template'	=> 'Página {page} de {totalPages} ({total} páginas registradas)',
 	'lang_Online_Now_Template'	=> '({count} en línea ahora)',
 	'lang_Bounce_Rate_Template'	=> '({rate}% de rebote)',
+	'lang_Bot_Summary_Template'	=> '({hits} visitas, {pct}% del tráfico total)',
+	'lang_Bot_Last_Seen_Template' => 'visto por última vez {time}',
 	'lang_Newret_New_Template'	=> 'Nuevos: {count} ({pct}%)',
 	'lang_Newret_Returning_Template' => 'Recurrentes: {count} ({pct}%)',
 	'lang_Newret_Unavailable'	=> 'Selecciona un período más corto (no "Todo el tiempo") para ver los visitantes nuevos y recurrentes.',
