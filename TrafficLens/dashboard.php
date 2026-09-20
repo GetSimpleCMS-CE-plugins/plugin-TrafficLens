@@ -20,6 +20,7 @@ $tl_js_keys = [
 	'lang_Top_Pages', 'lang_Col_URL', 'lang_Col_Views', 'lang_Col_Uniques', 'lang_Pdf_Footer', 'lang_Pdf_Export_Failed',
 	'lang_Bot_Summary_Template', 'lang_Bot_Last_Seen_Template', 'lang_No_Bots', 'lang_Bot_Skip_Note',
 	'lang_Bot_Unidentified', 'lang_Bot_Unknown_Client', 'lang_Bot_Other',
+	'lang_Bot_Activity', 'lang_Pdf_Col_Bot', 'lang_Pdf_Col_Hits', 'lang_Pdf_Col_Last_Seen',
 ];
 $tl_i18n_js = [];
 foreach (array_unique($tl_js_keys) as $k) {

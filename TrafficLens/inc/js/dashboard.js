@@ -464,8 +464,15 @@
 		doc.setFont(undefined, 'normal');
 	}
 
-	function pdfTable(doc, y, head, body, title) {
+	function pdfTable(doc, y, head, body, title, note) {
 		y = pdfSectionTitle(doc, y, title);
+		if (note) {
+			doc.setFontSize(8);
+			doc.setTextColor(140);
+			doc.text(note, PDF_MARGIN, y - 4);
+			doc.setTextColor(20);
+			y += 8;
+		}
 		if (!body.length) {
 			doc.setFontSize(9);
 			doc.setTextColor(140);
@@ -626,6 +633,15 @@
 		y = pdfTable(doc, y, [TL_I18N.lang_Pdf_Col_Exit_Page, TL_I18N.lang_Pdf_Col_Sessions], res.exit_pages.map(function (r) {
 			return [r.key, String(r.count)];
 		}), TL_I18N.lang_Exit_Pages + bounceNote);
+
+		// Bot activity - read straight from the bot rows, so it is the same whichever bot mode is active.
+		var bots = res.bots || { total: 0, share: 0, list: [], mode: 'separate' };
+		var botTitle = TL_I18N.lang_Bot_Activity + (bots.total > 0
+			? '  ' + tlFormat(TL_I18N.lang_Bot_Summary_Template, { hits: bots.total, pct: bots.share })
+			: '');
+		y = pdfTable(doc, y, [TL_I18N.lang_Pdf_Col_Bot, TL_I18N.lang_Pdf_Col_Hits, TL_I18N.lang_Pdf_Col_Last_Seen], (bots.list || []).map(function (b) {
+			return [botLabel(b.name), String(b.hits), b.last_seen];
+		}), botTitle, bots.mode === 'skip' ? TL_I18N.lang_Bot_Skip_Note : '');
 
 		// Top pages - fetch a fresh, larger, unpaginated-for-report list so the
 		// PDF isn't limited to whatever page the on-screen table happens to be on.
