@@ -26,6 +26,7 @@ function TrafficLens_parse_ua($ua) {
  * Known bots: 'token to look for (case-insensitive)' => 'display name'.
  */
 function TrafficLens_bot_signatures() {
+	return [
 		// Search engines (variants grouped)
 		'Googlebot'              => 'Googlebot',
 		'AdsBot-Google'          => 'Google AdsBot',
