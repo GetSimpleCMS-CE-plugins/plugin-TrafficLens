@@ -200,6 +200,8 @@
 
 .tl-footer { margin-top: 1.5rem; font-size: .78rem; color: #999; }
 .tl-footer a { color: #2764e7; }
+.tl-footer .donate { float: right; }
+.tl-footer .donate a { text-decoration:none!important}
 
 /* ── Live feed popup ────────────────────────────────────────────────── */
 .tl-stat-card.tl-stat-live {
